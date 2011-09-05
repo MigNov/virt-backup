@@ -1,0 +1,4 @@
+- Allow running user-specified command on the max-temp event
+- Test on AMD K10 and maybe implement AMD K8 board (???)
+- Conversion of flags to bit array (setting up bits of long)
+- Add multiple compression types (???)

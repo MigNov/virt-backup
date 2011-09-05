@@ -1,0 +1,8 @@
+VIRT-BACKUP
+-----------
+
+Virt-backup is the utility to backup your virtual machines
+using libvirt and lzma compression. Option for monitoring
+your core temperature is available for purposes to avoid
+CPU overheating when very high compression levels are
+being used.
