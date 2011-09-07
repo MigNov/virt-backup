@@ -155,7 +155,7 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-virt_backup_CFLAGS = -Wall
+virt_backup_CFLAGS = -Wall -g
 virt_backup_SOURCES = blockutils.c virt-backup.c sensors-common.c sensors-pci.c sensors-amd.c sensors-intel.c virt-backup.h sensors.h
 virt_backup_CPPFLAGS = `pkg-config libxml-2.0 --cflags`
 all: all-am
