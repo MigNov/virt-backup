@@ -195,6 +195,10 @@ char *getOwnership(char *fileName)
     DPRINTF("Got ownership of %s: UID=%d, GID=%d\n", fileName, st.st_uid, st.st_gid);
     pw = getpwuid(st.st_uid);
     gr = getgrgid(st.st_gid);
+
+    if (!pw || !gr)
+        return "?";
+
     snprintf(buf, 1024, "%s:%s", pw->pw_name, gr->gr_name);
     DPRINTF("Owner: %s, group: %s\n", pw->pw_name, gr->gr_name);
     value = (char *)malloc( strlen(buf) + 1 * sizeof(char));
@@ -653,8 +657,6 @@ char *replace(char *str, char *what, char *with)
     strcat(new, with);
     strcat(new, part + strlen(what) );
     DPRINTF("About to return new at %p\n", new);
-    free(old);
-    DPRINTF("Part and old freed\n");
     return new;
 }
 
