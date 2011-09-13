@@ -1,4 +1,4 @@
-AC_INIT([virt-backup], [0.0.1], [minovotn@redhat.com])
+AC_INIT([virt-backup], [0.0.3], [mignov@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 AC_PROG_CC
 AM_PROG_CC_C_O

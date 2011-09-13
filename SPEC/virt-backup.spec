@@ -1,13 +1,13 @@
 Name:		virt-backup
-Version:	0.0.1
-Release:	3%{?dist}
+Version:	0.0.3
+Release:	1%{?dist}
 Summary:	Utility to backup virtual machines using libvirt API and LZMA compression (if installed)
 
 Group:		Applications/Emulators
 License:	GPL
 Source0:	virt-backup-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires:	libvirt-devel libxml2-devel e2fsprogs-devel
+BuildRequires:	libvirt-devel libxml2-devel e2fsprogs-devel xz-devel pciutils-devel
 
 %description
 The virt-backup utility is the libvirt-based utility to backup various types of virtual
