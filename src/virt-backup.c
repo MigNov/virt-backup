@@ -1,5 +1,5 @@
 /* Those directives are passed to the compiler through the Makefile */
-#define APPVERSION "0.0.2"
+#define APPVERSION "0.0.3"
 //#define DEBUG
 //#define DEBUG_LZMA
 //#define HAVE_LZMA
@@ -43,6 +43,9 @@ do {} while(0)
     do {} while(0)
   #endif
 #endif
+
+#define PRINTF_PROGRESS(fmt, ...) \
+do { fprintf(stderr, "Progress: " fmt , ## __VA_ARGS__); } while (0)
 
 #ifdef HAVE_SENSORS
 time_t old_time = 0;
@@ -561,6 +564,9 @@ int xz_process_data(char *inputFile, char *outputFile, int decompress, unsigned 
 #else
 			memset(sensorVal, 0, 32);
 #endif
+
+			PRINTF_PROGRESS("Processing file '%s' to '%s': %3.2f%% (time = %s, speed = %llu KiB/s%s)\n", inputFile, outputFile,
+					percent, tStr, speed / 1024, sensorVal);
 
 			DPRINTF_LZMA("Processing %s -> %s: %3.2f%% (time = %s, speed = %llu KiB/s%s)\n", inputFile, outputFile,
 					percent, tStr, speed / 1024, sensorVal);
