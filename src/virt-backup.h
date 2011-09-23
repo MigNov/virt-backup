@@ -27,6 +27,7 @@
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <attr/xattr.h>
+#include <getopt.h>
 
 #undef HAVE_LZMA
 #define HAVE_LZMA HAVE_LIBLZMA
@@ -68,3 +69,13 @@ unsigned long flags;
 #define FLAG_DEBUG          128
 
 #define MAX_TEMP_SHIFT      8
+
+typedef struct tFiles {
+	char *domain;
+	char *type;
+	char *name;
+	unsigned long long size;
+	char *selinux;
+	char *ownership;
+	char *compression;
+} tFiles;
