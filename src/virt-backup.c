@@ -1050,7 +1050,7 @@ out:
 	else
 #endif
 
-#ifdef HAVE_LZMA
+#if 0
 	if (compress == 1)
 		/* TODO: Implement some proper calculations instead of guessing */
 		sizeDivisor = gCompressionLevel / 2;
@@ -1061,10 +1061,10 @@ out:
 	/* Check size with decremented size of existing images against the amount of free space */
 	if ((sFree = getFreeSpace(savePath)) < ((size / sizeDivisor) - decSize))
 	{
-		DPRINTF("Not enough space to save image(s) for %s\n", virDomainGetName(dp) );
-		DPRINTF("Free space on %s device: %llu KiB\n", savePath, sFree / 1024);
-		DPRINTF("Total size of images for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
-		DPRINTF("  %llu more KiB(s) are needed to backup %s\n", (size - sFree) / 1024,
+		printf("Not enough space to save image(s) for %s\n", virDomainGetName(dp) );
+		printf("Free space on %s device: %llu KiB\n", savePath, sFree / 1024);
+		printf("Total size of images for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
+		printf("  %llu more KiB(s) are needed to backup %s\n", (size - sFree) / 1024,
 			virDomainGetName(dp) );
 		return -ENOSPC;
 	}
@@ -1162,7 +1162,12 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 			if (dp) {
 				DPRINTF("Got domain %s (ID = %d)\n", virDomainGetName(dp), idsA[i]);
 				size = 0;
-				dumpBlockDevices(dp, 0, &size, savePath, compress);
+				if (dumpBlockDevices(dp, 0, &size, savePath, compress) == -ENOSPC) {
+					virDomainFree(dp);
+					virConnectClose(cp);
+					printf("Fatal error: Not enough space\n");
+					exit(1);
+				}
 				DPRINTF("Total size for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
 				virDomainFree(dp);
 			}
