@@ -29,6 +29,15 @@
 #include <attr/xattr.h>
 #include <getopt.h>
 
+#define FLAG_USE_BLOCKAPI	100
+
+typedef struct tTokenizer {
+        char **tokens;
+        int numTokens;
+} tTokenizer;
+
+tTokenizer tokenize(char *string);
+
 #undef HAVE_LZMA
 #define HAVE_LZMA HAVE_LIBLZMA
 

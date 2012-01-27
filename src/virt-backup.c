@@ -382,7 +382,6 @@ lzma_options_lzma *options(int preset, int extreme)
 		.lc = LZMA_LC_DEFAULT,
 		.lp = LZMA_LP_DEFAULT,
 		.pb = LZMA_PB_DEFAULT,
-		.persistent = 0,
 		.mode = LZMA_MODE_NORMAL,
 		.nice_len = 64,
 		.mf = LZMA_MF_BT4,
@@ -646,15 +645,15 @@ char *replace(char *str, char *what, char *with)
 	int size, idx;
 	char *new, *part, *old;
 
-	DPRINTF("About to replace %d bytes with %d bytes\n", strlen(what), strlen(with));
-	DPRINTF("Original string at %p (%d bytes)\n", str, strlen(str));
+	DPRINTF("About to replace %d bytes with %d bytes\n", (int)strlen(what), (int)strlen(with));
+	DPRINTF("Original string at %p (%d bytes)\n", str, (int)strlen(str));
 	part = strstr(str, what);
 	if (part == NULL)
 	{
 		DPRINTF("Cannot find partial token (%s)\n", what);
 		return str;
 	}
-	DPRINTF("Have first part at %p, %d bytes\n", part, strlen(part));
+	DPRINTF("Have first part at %p, %d bytes\n", part, (int)strlen(part));
 
 	size = strlen(str) - strlen(what) + strlen(with);
 	new = (char *)malloc( size * sizeof(char) );
@@ -1135,6 +1134,56 @@ out:
 	return 0;
 }
 
+tTokenizer tokenize(char *string)
+{
+	char *tmp;
+	char *str;
+	char *save;
+	char *token;
+	int i = 0;
+	tTokenizer t;
+
+	tmp = strdup(string);
+	t.tokens = malloc( sizeof(char *) );
+	for (str = tmp; ; str = NULL) {
+		token = strtok_r(str, ",", &save);
+		if (token == NULL)
+			break;
+
+		t.tokens = realloc( t.tokens, (i + 1) * sizeof(char *) );
+		t.tokens[i++] = strdup(token);
+	}
+
+	t.numTokens = i;
+
+	return t;
+}
+
+int is_in_tokens(tTokenizer t, char *s)
+{
+	int i;
+
+	if (t.numTokens == 0)
+		return 1;
+
+	for (i = 0; i < t.numTokens; i++) {
+		if (strcmp(t.tokens[i], s) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+void free_tokens(tTokenizer t)
+{
+	int i;
+
+	for (i = 0; i < t.numTokens; i++) {
+		free(t.tokens[i]);
+		t.tokens[i] = NULL;
+	}
+}
+
 void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *savePath, int compress, char *domains)
 {
 	int i;
@@ -1144,11 +1193,22 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 	unsigned long long size;
 	FILE *fp;
 	char tmpFile[1024];
+	tTokenizer t;
 
 	snprintf(tmpFile, 1024, "%s/original-files.xml", savePath);
 	fp = fopen(tmpFile, "w");
 	fprintf(fp, "<files compression=\"%s\">\n", compress ? "lzma" : "none");
 	fclose(fp);
+
+	DPRINTF("%s: virConnectPtr %p, maxActive %d, maxInactive %d, savePath '%s', compress %d, domains '%s'\n",
+			__FUNCTION__, cp, maxActive, maxInactive, savePath, compress, domains);
+
+	if (domains != NULL) {
+		t = tokenize(domains);
+		DPRINTF("%s: Number of domains for backup is %d\n", __FUNCTION__, t.numTokens);
+	}
+	else
+		t.numTokens = 0;
 
 	if (maxActive > 0) {
 		idsA = malloc( maxActive * sizeof(int) );
@@ -1160,16 +1220,19 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 		for (i = 0; i < maxActive; i++) {
 			dp = virDomainLookupByID(cp, idsA[i]);
 			if (dp) {
-				DPRINTF("Got domain %s (ID = %d)\n", virDomainGetName(dp), idsA[i]);
-				size = 0;
-				if (dumpBlockDevices(dp, 0, &size, savePath, compress) == -ENOSPC) {
+				if (is_in_tokens(t, virDomainGetName(dp))) {
+					DPRINTF("Got domain %s (ID = %d)\n", virDomainGetName(dp), idsA[i]);
+					size = 0;
+					if (dumpBlockDevices(dp, 0, &size, savePath, compress) == -ENOSPC) {
+						virDomainFree(dp);
+						virConnectClose(cp);
+						printf("Fatal error: Not enough space\n");
+						free_tokens(t);
+						exit(1);
+					}
+					DPRINTF("Total size for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
 					virDomainFree(dp);
-					virConnectClose(cp);
-					printf("Fatal error: Not enough space\n");
-					exit(1);
 				}
-				DPRINTF("Total size for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
-				virDomainFree(dp);
 			}
 		}
 		free(idsA);
@@ -1177,7 +1240,7 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 
 	if (maxInactive > 0) {
 		if (domains == NULL) {
-		names = malloc( maxInactive * sizeof(char *) );
+			names = malloc( maxInactive * sizeof(char *) );
 		if ((maxInactive = virConnectListDefinedDomains(cp, names, maxInactive)) < 0) {
 			free(names);
 			DPRINTF("Failed when getting inactive domain list\n");
@@ -1204,11 +1267,13 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 	for (i = 0; i < maxInactive; i++) {
 		dp = virDomainLookupByName(cp, names[i]);
 		if (dp) {
-			DPRINTF("Got domain %s\n", virDomainGetName(dp));
-			size = 0;
-			dumpBlockDevices(dp, 1, &size, savePath, compress);
-			DPRINTF("Total size for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
-			virDomainFree(dp);
+			if (is_in_tokens(t, virDomainGetName(dp))) {
+				DPRINTF("Got domain %s\n", virDomainGetName(dp));
+				size = 0;
+				dumpBlockDevices(dp, 1, &size, savePath, compress);
+				DPRINTF("Total size for %s: %llu KiB\n", virDomainGetName(dp), size / 1024);
+				virDomainFree(dp);
+			}
 		}
 	}
         free(names);
@@ -1217,6 +1282,8 @@ void getDomainFiles(virConnectPtr cp, int maxActive, int maxInactive, char *save
 	fp = fopen(tmpFile, "a");
 	fprintf(fp, "</files>\n");
 	fclose(fp);
+
+	free_tokens(t);
 }
 
 int restoreStorageImages(char *pathFrom, char *pathTo, struct tFiles *files, int from, int to)
