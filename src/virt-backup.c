@@ -1478,7 +1478,7 @@ void usage(char *name)
 		" [--use-block-info-api]"
 #endif
 #ifdef HAVE_LZMA
-		" [--compression] [--compression-level level]"
+		" [--compression] [--compression-level level] [--no-compression]"
 #endif
 		"\n"
 		"       %s restore --source-path srcpath --destination-path destpath [--hypervisor-uri uri]\n"
